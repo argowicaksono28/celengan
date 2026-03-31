@@ -11,7 +11,7 @@ interface TelegramAuthData {
 }
 
 export function verifyTelegramAuth(data: TelegramAuthData): boolean {
-  if (process.env.NODE_ENV === "development") return true;
+  if (process.env.NEXT_PUBLIC_DEV_LOGIN === "true") return true;
 
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   if (!botToken) return false;

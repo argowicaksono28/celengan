@@ -49,7 +49,7 @@ export default function LoginPage() {
     };
   }, [router]);
 
-  const isDev = process.env.NODE_ENV === "development";
+  const isDev = process.env.NEXT_PUBLIC_DEV_LOGIN === "true";
 
   const devLogin = async () => {
     const mockUser = {

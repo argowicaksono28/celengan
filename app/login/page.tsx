@@ -12,6 +12,8 @@ declare global {
 export default function LoginPage() {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
+  const botName = process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME;
+  const isDev = !botName;
 
   useEffect(() => {
     // Check if already logged in
@@ -32,7 +34,6 @@ export default function LoginPage() {
     };
 
     // Load Telegram widget script
-    const botName = process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME;
     if (botName && containerRef.current) {
       const script = document.createElement("script");
       script.src = "https://telegram.org/js/telegram-widget.js?22";
@@ -48,9 +49,6 @@ export default function LoginPage() {
       delete window.onTelegramAuth;
     };
   }, [router]);
-
-  // Show dev button when no Telegram bot is configured, or when dev login is explicitly enabled
-  const isDev = !process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME || process.env.NEXT_PUBLIC_DEV_LOGIN === "true";
 
   const devLogin = async () => {
     const mockUser = {

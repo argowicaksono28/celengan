@@ -49,7 +49,8 @@ export default function LoginPage() {
     };
   }, [router]);
 
-  const isDev = process.env.NEXT_PUBLIC_DEV_LOGIN === "true";
+  // Show dev button when no Telegram bot is configured, or when dev login is explicitly enabled
+  const isDev = !process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME || process.env.NEXT_PUBLIC_DEV_LOGIN === "true";
 
   const devLogin = async () => {
     const mockUser = {

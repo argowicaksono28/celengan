@@ -1,0 +1,230 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  telegramId   BigInt   @unique
+  username     String?
+  firstName    String
+  lastName     String?
+  photoUrl     String?
+  plan         Plan     @default(FREE)
+  timezone     String   @default("Asia/Jakarta")
+  language     String   @default("id")
+  theme        Theme    @default(DARK)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  accounts     Account[]
+  transactions Transaction[]
+  budgets      Budget[]
+  goals        SavingsGoal[]
+  creditCards  CreditCard[]
+  loans        Loan[]
+  categories   Category[]
+
+  @@index([telegramId])
+}
+
+enum Plan {
+  FREE
+  PRO
+  PREMIUM
+}
+
+enum Theme {
+  DARK
+  LIGHT
+  SYSTEM
+}
+
+model Account {
+  id           String          @id @default(cuid())
+  userId       String
+  name         String
+  type         AccountType
+  balance      Decimal         @default(0) @db.Decimal(15, 2)
+  color        String          @default("#3B82F6")
+  icon         String          @default("building-2")
+  isDefault    Boolean         @default(false)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  transfersOut Transaction[]   @relation("TransferFrom")
+  transfersIn  Transaction[]   @relation("TransferTo")
+
+  @@index([userId])
+}
+
+enum AccountType {
+  BANK
+  EWALLET
+  CASH
+  INVESTMENT
+}
+
+model Transaction {
+  id              String          @id @default(cuid())
+  userId          String
+  accountId       String
+  type            TransactionType
+  amount          Decimal         @db.Decimal(15, 2)
+  categoryId      String?
+  note            String?
+  date            DateTime        @default(now())
+  transferToId    String?
+  transferFromId  String?
+  creditCardId    String?
+  source          TxSource        @default(WEB)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account         Account         @relation(fields: [accountId], references: [id])
+  category        Category?       @relation(fields: [categoryId], references: [id])
+  transferTo      Account?        @relation("TransferTo", fields: [transferToId], references: [id])
+  transferFrom    Account?        @relation("TransferFrom", fields: [transferFromId], references: [id])
+  creditCard      CreditCard?     @relation(fields: [creditCardId], references: [id])
+
+  @@index([userId, date])
+  @@index([userId, type])
+  @@index([accountId])
+  @@index([categoryId])
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  TRANSFER
+}
+
+enum TxSource {
+  BOT
+  WEB
+  IMPORT
+}
+
+model Category {
+  id           String    @id @default(cuid())
+  userId       String?
+  name         String
+  icon         String
+  color        String
+  isDefault    Boolean   @default(false)
+  parentId     String?
+  createdAt    DateTime  @default(now())
+
+  user         User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent       Category? @relation("Subcategories", fields: [parentId], references: [id])
+  children     Category[] @relation("Subcategories")
+  transactions Transaction[]
+  budgets      Budget[]
+
+  @@index([userId])
+}
+
+model Budget {
+  id           String    @id @default(cuid())
+  userId       String
+  categoryId   String
+  amount       Decimal   @db.Decimal(15, 2)
+  month        Int
+  year         Int
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category     Category  @relation(fields: [categoryId], references: [id])
+
+  @@unique([userId, categoryId, month, year])
+  @@index([userId, month, year])
+}
+
+model SavingsGoal {
+  id              String    @id @default(cuid())
+  userId          String
+  name            String
+  targetAmount    Decimal   @db.Decimal(15, 2)
+  savedAmount     Decimal   @default(0) @db.Decimal(15, 2)
+  deadline        DateTime?
+  color           String    @default("#8B5CF6")
+  icon            String    @default("piggy-bank")
+  isCompleted     Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model CreditCard {
+  id              String    @id @default(cuid())
+  userId          String
+  name            String
+  bank            String
+  last4           String
+  limit           Decimal   @db.Decimal(15, 2)
+  balance         Decimal   @default(0) @db.Decimal(15, 2)
+  billingDate     Int
+  dueDate         Int
+  color           String    @default("#3B82F6")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions    Transaction[]
+
+  @@index([userId])
+}
+
+model Loan {
+  id              String      @id @default(cuid())
+  userId          String
+  personName      String
+  direction       LoanDirection
+  originalAmount  Decimal     @db.Decimal(15, 2)
+  remainingAmount Decimal     @db.Decimal(15, 2)
+  monthlyAmount   Decimal?    @db.Decimal(15, 2)
+  dueDate         DateTime?
+  status          LoanStatus  @default(ACTIVE)
+  notes           String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments        LoanPayment[]
+
+  @@index([userId])
+}
+
+enum LoanDirection {
+  LENT
+  BORROWED
+}
+
+enum LoanStatus {
+  ACTIVE
+  OVERDUE
+  CLEARED
+}
+
+model LoanPayment {
+  id        String   @id @default(cuid())
+  loanId    String
+  amount    Decimal  @db.Decimal(15, 2)
+  date      DateTime @default(now())
+  note      String?
+
+  loan      Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
+
+  @@index([loanId])
+}

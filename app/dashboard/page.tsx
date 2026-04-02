@@ -107,7 +107,7 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchDashboard();
     fetch("/api/auth/me").then((r) => r.json()).then((d) => {
-      if (d.user) setUserName(d.user.firstName);
+      if (d.user) setUserName(d.user.name);
     });
   }, [fetchDashboard]);
 

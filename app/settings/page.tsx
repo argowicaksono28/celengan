@@ -160,11 +160,11 @@ export default function SettingsPage() {
                   <div className="space-y-4">
                     <div className="flex items-center gap-4 p-4 bg-[#334155] rounded-lg">
                       <div className="w-12 h-12 rounded-full bg-violet-600 flex items-center justify-center text-white font-bold text-lg">
-                        {user.firstName?.charAt(0).toUpperCase()}
+                        {user.name?.charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <p className="text-[#F8FAFC] font-semibold">{user.firstName} {user.lastName ?? ""}</p>
-                        {user.username && <p className="text-[#64748B] text-sm">@{user.username}</p>}
+                        <p className="text-[#F8FAFC] font-semibold">{user.name}</p>
+                        <p className="text-[#64748B] text-sm">{user.email}</p>
                         <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full font-medium ${user.plan === "PREMIUM" ? "bg-amber-500/20 text-amber-400" : user.plan === "PRO" ? "bg-blue-500/20 text-blue-400" : "bg-[#475569]/50 text-[#94A3B8]"}`}>
                           {user.plan}
                         </span>
@@ -172,12 +172,12 @@ export default function SettingsPage() {
                     </div>
                     <div className="space-y-3">
                       <div>
-                        <label className="text-xs text-[#94A3B8] block mb-1.5">Telegram ID</label>
-                        <input readOnly value={user.telegramId ?? ""} className="w-full bg-[#334155] border border-[#475569] text-[#64748B] rounded-lg px-3 py-2.5 text-sm font-mono cursor-not-allowed" />
+                        <label className="text-xs text-[#94A3B8] block mb-1.5">Nama</label>
+                        <input readOnly value={user.name ?? ""} className="w-full bg-[#334155] border border-[#475569] text-[#64748B] rounded-lg px-3 py-2.5 text-sm cursor-not-allowed" />
                       </div>
                       <div>
-                        <label className="text-xs text-[#94A3B8] block mb-1.5">Username Telegram</label>
-                        <input readOnly value={user.username ? `@${user.username}` : "—"} className="w-full bg-[#334155] border border-[#475569] text-[#64748B] rounded-lg px-3 py-2.5 text-sm cursor-not-allowed" />
+                        <label className="text-xs text-[#94A3B8] block mb-1.5">Email</label>
+                        <input readOnly value={user.email ?? ""} className="w-full bg-[#334155] border border-[#475569] text-[#64748B] rounded-lg px-3 py-2.5 text-sm cursor-not-allowed" />
                       </div>
                     </div>
                   </div>
@@ -442,7 +442,7 @@ export default function SettingsPage() {
                     </div>
                   </button>
                   <button
-                    onClick={() => { if (confirm("Yakin ingin logout?")) { fetch("/api/auth/telegram", { method: "DELETE" }).then(() => window.location.href = "/login"); } }}
+                    onClick={() => { if (confirm("Yakin ingin logout?")) { fetch("/api/auth/logout", { method: "POST" }).then(() => window.location.href = "/login"); } }}
                     className="w-full flex items-center gap-3 p-4 bg-red-500/10 hover:bg-red-500/20 rounded-lg text-sm text-red-400 transition-colors text-left border border-red-500/20"
                   >
                     <span className="text-lg">🚪</span>

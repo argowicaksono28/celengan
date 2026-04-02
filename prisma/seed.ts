@@ -1,4 +1,5 @@
 import { PrismaClient, TransactionType, AccountType, LoanDirection, TxSource } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
@@ -17,12 +18,12 @@ async function main() {
   await prisma.user.deleteMany();
 
   // Create demo user
+  const passwordHash = await bcrypt.hash("budi1234", 12);
   const user = await prisma.user.create({
     data: {
-      telegramId: BigInt(123456789),
-      username: "demo_user",
-      firstName: "Budi",
-      lastName: "Santoso",
+      email: "budi@celengan.app",
+      passwordHash,
+      name: "Budi Santoso",
       plan: "PRO",
     },
   });
@@ -173,89 +174,89 @@ async function main() {
   // Create 30 days of realistic transactions
   const txData = [
     // Day 1
-    { accountId: bca.id, type: TransactionType.INCOME, amount: 8500000, categoryId: null, note: "Gaji Maret", date: d(1), source: TxSource.BOT },
-    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 35000, categoryId: food.id, note: "GoFood nasi goreng", date: d(1), source: TxSource.BOT },
+    { accountId: bca.id, type: TransactionType.INCOME, amount: 8500000, categoryId: null, note: "Gaji Maret", date: d(1), source: TxSource.WEB },
+    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 35000, categoryId: food.id, note: "GoFood nasi goreng", date: d(1), source: TxSource.WEB },
     // Day 2
-    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 25000, categoryId: transport.id, note: "Gojek ke kantor", date: d(2), source: TxSource.BOT },
-    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 28000, categoryId: food.id, note: "Makan siang warteg", date: d(2), source: TxSource.BOT },
+    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 25000, categoryId: transport.id, note: "Gojek ke kantor", date: d(2), source: TxSource.WEB },
+    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 28000, categoryId: food.id, note: "Makan siang warteg", date: d(2), source: TxSource.WEB },
     // Day 3
-    { accountId: bca.id, type: TransactionType.EXPENSE, amount: 2800000, categoryId: housing.id, note: "Bayar kos bulan Maret", date: d(3), source: TxSource.BOT },
-    { accountId: bca.id, type: TransactionType.EXPENSE, amount: 350000, categoryId: housing.id, note: "Listrik PLN token", date: d(3), source: TxSource.BOT },
+    { accountId: bca.id, type: TransactionType.EXPENSE, amount: 2800000, categoryId: housing.id, note: "Bayar kos bulan Maret", date: d(3), source: TxSource.WEB },
+    { accountId: bca.id, type: TransactionType.EXPENSE, amount: 350000, categoryId: housing.id, note: "Listrik PLN token", date: d(3), source: TxSource.WEB },
     // Day 4
-    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 45000, categoryId: food.id, note: "Kopi dan snack cafe", date: d(4), source: TxSource.BOT },
-    { accountId: cash.id, type: TransactionType.EXPENSE, amount: 15000, categoryId: transport.id, note: "Parkir motor", date: d(4), source: TxSource.BOT },
+    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 45000, categoryId: food.id, note: "Kopi dan snack cafe", date: d(4), source: TxSource.WEB },
+    { accountId: cash.id, type: TransactionType.EXPENSE, amount: 15000, categoryId: transport.id, note: "Parkir motor", date: d(4), source: TxSource.WEB },
     // Day 5
-    { accountId: bca.id, type: TransactionType.EXPENSE, amount: 150000, categoryId: communication.id, note: "Paket data Telkomsel 30GB", date: d(5), source: TxSource.BOT },
-    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 32000, categoryId: food.id, note: "GrabFood ayam geprek", date: d(5), source: TxSource.BOT },
+    { accountId: bca.id, type: TransactionType.EXPENSE, amount: 150000, categoryId: communication.id, note: "Paket data Telkomsel 30GB", date: d(5), source: TxSource.WEB },
+    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 32000, categoryId: food.id, note: "GrabFood ayam geprek", date: d(5), source: TxSource.WEB },
     // Day 6
-    { accountId: bca.id, type: TransactionType.INCOME, amount: 500000, categoryId: null, note: "Freelance desain logo", date: d(6), source: TxSource.BOT },
-    { accountId: cash.id, type: TransactionType.EXPENSE, amount: 80000, categoryId: social.id, note: "Kondangan Pak RT", date: d(6), source: TxSource.BOT },
+    { accountId: bca.id, type: TransactionType.INCOME, amount: 500000, categoryId: null, note: "Freelance desain logo", date: d(6), source: TxSource.WEB },
+    { accountId: cash.id, type: TransactionType.EXPENSE, amount: 80000, categoryId: social.id, note: "Kondangan Pak RT", date: d(6), source: TxSource.WEB },
     // Day 7
-    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 55000, categoryId: food.id, note: "Makan bersama keluarga", date: d(7), source: TxSource.BOT },
-    { accountId: bca.id, type: TransactionType.EXPENSE, amount: 160000, categoryId: entertainment.id, note: "Netflix + Spotify bulanan", date: d(7), source: TxSource.BOT },
+    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 55000, categoryId: food.id, note: "Makan bersama keluarga", date: d(7), source: TxSource.WEB },
+    { accountId: bca.id, type: TransactionType.EXPENSE, amount: 160000, categoryId: entertainment.id, note: "Netflix + Spotify bulanan", date: d(7), source: TxSource.WEB },
     // Day 8
-    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 28000, categoryId: transport.id, note: "Ojol ke stasiun", date: d(8), source: TxSource.BOT },
-    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 22000, categoryId: food.id, note: "Sarapan nasi uduk", date: d(8), source: TxSource.BOT },
+    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 28000, categoryId: transport.id, note: "Ojol ke stasiun", date: d(8), source: TxSource.WEB },
+    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 22000, categoryId: food.id, note: "Sarapan nasi uduk", date: d(8), source: TxSource.WEB },
     // Day 10
-    { accountId: bca.id, type: TransactionType.EXPENSE, amount: 250000, categoryId: health.id, note: "BPJS Kesehatan", date: d(10), source: TxSource.BOT },
-    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 45000, categoryId: food.id, note: "Lunch GoFood pizza", date: d(10), source: TxSource.BOT },
+    { accountId: bca.id, type: TransactionType.EXPENSE, amount: 250000, categoryId: health.id, note: "BPJS Kesehatan", date: d(10), source: TxSource.WEB },
+    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 45000, categoryId: food.id, note: "Lunch GoFood pizza", date: d(10), source: TxSource.WEB },
     // Day 11
-    { accountId: bca.id, type: TransactionType.EXPENSE, amount: 350000, categoryId: shopping.id, note: "Shopee skincare", date: d(11), source: TxSource.BOT },
-    { accountId: cash.id, type: TransactionType.EXPENSE, amount: 20000, categoryId: food.id, note: "Jajan bakso gerobak", date: d(11), source: TxSource.BOT },
+    { accountId: bca.id, type: TransactionType.EXPENSE, amount: 350000, categoryId: shopping.id, note: "Shopee skincare", date: d(11), source: TxSource.WEB },
+    { accountId: cash.id, type: TransactionType.EXPENSE, amount: 20000, categoryId: food.id, note: "Jajan bakso gerobak", date: d(11), source: TxSource.WEB },
     // Day 12
-    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 35000, categoryId: transport.id, note: "Grab Motor kantor", date: d(12), source: TxSource.BOT },
-    { accountId: bca.id, type: TransactionType.INCOME, amount: 750000, categoryId: null, note: "Project copywriting", date: d(12), source: TxSource.BOT },
+    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 35000, categoryId: transport.id, note: "Grab Motor kantor", date: d(12), source: TxSource.WEB },
+    { accountId: bca.id, type: TransactionType.INCOME, amount: 750000, categoryId: null, note: "Project copywriting", date: d(12), source: TxSource.WEB },
     // Day 13
-    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 60000, categoryId: food.id, note: "Dinner sama teman", date: d(13), source: TxSource.BOT },
-    { accountId: bca.id, type: TransactionType.EXPENSE, amount: 195000, categoryId: entertainment.id, note: "Bioskop CGV + popcorn", date: d(13), source: TxSource.BOT },
+    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 60000, categoryId: food.id, note: "Dinner sama teman", date: d(13), source: TxSource.WEB },
+    { accountId: bca.id, type: TransactionType.EXPENSE, amount: 195000, categoryId: entertainment.id, note: "Bioskop CGV + popcorn", date: d(13), source: TxSource.WEB },
     // Day 14
-    { accountId: bca.id, type: TransactionType.EXPENSE, amount: 500000, categoryId: investment.id, note: "Top up Reksa Dana Bibit", date: d(14), source: TxSource.BOT },
-    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 38000, categoryId: food.id, note: "GoFood mie ayam", date: d(14), source: TxSource.BOT },
+    { accountId: bca.id, type: TransactionType.EXPENSE, amount: 500000, categoryId: investment.id, note: "Top up Reksa Dana Bibit", date: d(14), source: TxSource.WEB },
+    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 38000, categoryId: food.id, note: "GoFood mie ayam", date: d(14), source: TxSource.WEB },
     // Day 15
-    { accountId: bca.id, type: TransactionType.EXPENSE, amount: 200000, categoryId: misc.id, note: "Laundry kiloan 10kg", date: d(15), source: TxSource.BOT },
-    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 25000, categoryId: transport.id, note: "GoCar ke mall", date: d(15), source: TxSource.BOT },
+    { accountId: bca.id, type: TransactionType.EXPENSE, amount: 200000, categoryId: misc.id, note: "Laundry kiloan 10kg", date: d(15), source: TxSource.WEB },
+    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 25000, categoryId: transport.id, note: "GoCar ke mall", date: d(15), source: TxSource.WEB },
     // Day 16
-    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 30000, categoryId: food.id, note: "Kopi kekinian", date: d(16), source: TxSource.BOT },
-    { accountId: bca.id, type: TransactionType.EXPENSE, amount: 450000, categoryId: shopping.id, note: "Tokopedia baju kerja", date: d(16), source: TxSource.BOT },
+    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 30000, categoryId: food.id, note: "Kopi kekinian", date: d(16), source: TxSource.WEB },
+    { accountId: bca.id, type: TransactionType.EXPENSE, amount: 450000, categoryId: shopping.id, note: "Tokopedia baju kerja", date: d(16), source: TxSource.WEB },
     // Day 17
-    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 25000, categoryId: transport.id, note: "Gojek kantor", date: d(17), source: TxSource.BOT },
-    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 40000, categoryId: food.id, note: "Makan siang restoran", date: d(17), source: TxSource.BOT },
+    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 25000, categoryId: transport.id, note: "Gojek kantor", date: d(17), source: TxSource.WEB },
+    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 40000, categoryId: food.id, note: "Makan siang restoran", date: d(17), source: TxSource.WEB },
     // Day 18
-    { accountId: bca.id, type: TransactionType.INCOME, amount: 200000, categoryId: null, note: "Komisi referral", date: d(18), source: TxSource.BOT },
-    { accountId: cash.id, type: TransactionType.EXPENSE, amount: 100000, categoryId: social.id, note: "Arisan RT bulan ini", date: d(18), source: TxSource.BOT },
+    { accountId: bca.id, type: TransactionType.INCOME, amount: 200000, categoryId: null, note: "Komisi referral", date: d(18), source: TxSource.WEB },
+    { accountId: cash.id, type: TransactionType.EXPENSE, amount: 100000, categoryId: social.id, note: "Arisan RT bulan ini", date: d(18), source: TxSource.WEB },
     // Day 19
-    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 55000, categoryId: food.id, note: "Breakfast + lunch kantor", date: d(19), source: TxSource.BOT },
-    { accountId: bca.id, type: TransactionType.EXPENSE, amount: 120000, categoryId: health.id, note: "Apotek vitamin C dan multivitamin", date: d(19), source: TxSource.BOT },
+    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 55000, categoryId: food.id, note: "Breakfast + lunch kantor", date: d(19), source: TxSource.WEB },
+    { accountId: bca.id, type: TransactionType.EXPENSE, amount: 120000, categoryId: health.id, note: "Apotek vitamin C dan multivitamin", date: d(19), source: TxSource.WEB },
     // Day 20
-    { accountId: bca.id, type: TransactionType.EXPENSE, amount: 1200000, categoryId: null, note: "BCA Visa Visa payment", date: d(20), source: TxSource.BOT, creditCardId: bcaVisa.id },
-    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 42000, categoryId: food.id, note: "GoFood soto betawi", date: d(20), source: TxSource.BOT },
+    { accountId: bca.id, type: TransactionType.EXPENSE, amount: 1200000, categoryId: null, note: "BCA Visa payment", date: d(20), source: TxSource.WEB, creditCardId: bcaVisa.id },
+    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 42000, categoryId: food.id, note: "GoFood soto betawi", date: d(20), source: TxSource.WEB },
     // Day 21
-    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 30000, categoryId: transport.id, note: "Grab home dari mall", date: d(21), source: TxSource.BOT },
-    { accountId: bca.id, type: TransactionType.EXPENSE, amount: 300000, categoryId: education.id, note: "Udemy course Python", date: d(21), source: TxSource.BOT },
+    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 30000, categoryId: transport.id, note: "Grab home dari mall", date: d(21), source: TxSource.WEB },
+    { accountId: bca.id, type: TransactionType.EXPENSE, amount: 300000, categoryId: education.id, note: "Udemy course Python", date: d(21), source: TxSource.WEB },
     // Day 22
-    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 28000, categoryId: food.id, note: "Sarapan bubur ayam", date: d(22), source: TxSource.BOT },
-    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 35000, categoryId: transport.id, note: "Ojol weekend", date: d(22), source: TxSource.BOT },
+    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 28000, categoryId: food.id, note: "Sarapan bubur ayam", date: d(22), source: TxSource.WEB },
+    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 35000, categoryId: transport.id, note: "Ojol weekend", date: d(22), source: TxSource.WEB },
     // Day 23
-    { accountId: bca.id, type: TransactionType.EXPENSE, amount: 200000, categoryId: social.id, note: "Zakat infaq masjid", date: d(23), source: TxSource.BOT },
-    { accountId: cash.id, type: TransactionType.EXPENSE, amount: 45000, categoryId: food.id, note: "Makan bakso keluarga", date: d(23), source: TxSource.BOT },
+    { accountId: bca.id, type: TransactionType.EXPENSE, amount: 200000, categoryId: social.id, note: "Zakat infaq masjid", date: d(23), source: TxSource.WEB },
+    { accountId: cash.id, type: TransactionType.EXPENSE, amount: 45000, categoryId: food.id, note: "Makan bakso keluarga", date: d(23), source: TxSource.WEB },
     // Day 24
-    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 22000, categoryId: transport.id, note: "KRL commuter line", date: d(24), source: TxSource.BOT },
-    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 35000, categoryId: food.id, note: "Makan siang warteg", date: d(24), source: TxSource.BOT },
+    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 22000, categoryId: transport.id, note: "KRL commuter line", date: d(24), source: TxSource.WEB },
+    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 35000, categoryId: food.id, note: "Makan siang warteg", date: d(24), source: TxSource.WEB },
     // Day 25
-    { accountId: bca.id, type: TransactionType.EXPENSE, amount: 500000, categoryId: investment.id, note: "Nabung emas Antam", date: d(25), source: TxSource.BOT },
-    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 48000, categoryId: food.id, note: "Dinner nasi padang", date: d(25), source: TxSource.BOT },
+    { accountId: bca.id, type: TransactionType.EXPENSE, amount: 500000, categoryId: investment.id, note: "Nabung emas Antam", date: d(25), source: TxSource.WEB },
+    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 48000, categoryId: food.id, note: "Dinner nasi padang", date: d(25), source: TxSource.WEB },
     // Day 26
-    { accountId: bca.id, type: TransactionType.EXPENSE, amount: 145000, categoryId: misc.id, note: "Potong rambut + cukur", date: d(26), source: TxSource.BOT },
-    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 32000, categoryId: food.id, note: "Kopi dan roti kantor", date: d(26), source: TxSource.BOT },
+    { accountId: bca.id, type: TransactionType.EXPENSE, amount: 145000, categoryId: misc.id, note: "Potong rambut + cukur", date: d(26), source: TxSource.WEB },
+    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 32000, categoryId: food.id, note: "Kopi dan roti kantor", date: d(26), source: TxSource.WEB },
     // Day 27
-    { accountId: cash.id, type: TransactionType.EXPENSE, amount: 40000, categoryId: food.id, note: "Jajan pasar tradisional", date: d(27), source: TxSource.BOT },
-    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 25000, categoryId: transport.id, note: "Gojek motor", date: d(27), source: TxSource.BOT },
+    { accountId: cash.id, type: TransactionType.EXPENSE, amount: 40000, categoryId: food.id, note: "Jajan pasar tradisional", date: d(27), source: TxSource.WEB },
+    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 25000, categoryId: transport.id, note: "Gojek motor", date: d(27), source: TxSource.WEB },
     // Day 28
-    { accountId: bca.id, type: TransactionType.EXPENSE, amount: 190000, categoryId: insurance.id, note: "Asuransi jiwa Prudential", date: d(28), source: TxSource.BOT },
-    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 55000, categoryId: food.id, note: "Makan bersama teman lama", date: d(28), source: TxSource.BOT },
+    { accountId: bca.id, type: TransactionType.EXPENSE, amount: 190000, categoryId: insurance.id, note: "Asuransi jiwa Prudential", date: d(28), source: TxSource.WEB },
+    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 55000, categoryId: food.id, note: "Makan bersama teman lama", date: d(28), source: TxSource.WEB },
     // Day 29
-    { accountId: bca.id, type: TransactionType.INCOME, amount: 300000, categoryId: null, note: "Bonus performa Q1", date: d(29), source: TxSource.BOT },
-    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 38000, categoryId: food.id, note: "GoFood nasi box", date: d(29), source: TxSource.BOT },
+    { accountId: bca.id, type: TransactionType.INCOME, amount: 300000, categoryId: null, note: "Bonus performa Q1", date: d(29), source: TxSource.WEB },
+    { accountId: gopay.id, type: TransactionType.EXPENSE, amount: 38000, categoryId: food.id, note: "GoFood nasi box", date: d(29), source: TxSource.WEB },
   ];
 
   for (const tx of txData) {
@@ -272,12 +273,13 @@ async function main() {
       note: "Top up GoPay",
       date: d(9),
       transferToId: gopay.id,
-      source: TxSource.BOT,
+      source: TxSource.WEB,
     },
   });
 
   console.log("✅ Seeding complete!");
-  console.log(`   User: ${user.firstName} ${user.lastName}`);
+  console.log(`   User: ${user.name} (${user.email})`);
+  console.log(`   Password: budi1234`);
   console.log(`   Accounts: ${accounts.length}`);
   console.log(`   Categories: ${categories.length}`);
   console.log(`   Transactions: ${txData.length + 1}`);

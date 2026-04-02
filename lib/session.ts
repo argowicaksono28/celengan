@@ -5,11 +5,8 @@ declare module "iron-session" {
   interface IronSessionData {
     user?: {
       id: string;
-      telegramId: string;
-      firstName: string;
-      lastName?: string;
-      username?: string;
-      photoUrl?: string;
+      email: string;
+      name: string;
       plan: string;
     };
   }

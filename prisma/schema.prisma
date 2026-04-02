@@ -9,11 +9,9 @@ datasource db {
 
 model User {
   id           String   @id @default(cuid())
-  telegramId   BigInt   @unique
-  username     String?
-  firstName    String
-  lastName     String?
-  photoUrl     String?
+  email        String   @unique
+  passwordHash String
+  name         String
   plan         Plan     @default(FREE)
   timezone     String   @default("Asia/Jakarta")
   language     String   @default("id")
@@ -29,7 +27,7 @@ model User {
   loans        Loan[]
   categories   Category[]
 
-  @@index([telegramId])
+  @@index([email])
 }
 
 enum Plan {

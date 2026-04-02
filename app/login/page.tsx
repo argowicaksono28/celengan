@@ -1,75 +1,75 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-
-declare global {
-  interface Window {
-    onTelegramAuth?: (user: any) => void;
-  }
-}
 
 export default function LoginPage() {
   const router = useRouter();
-  const containerRef = useRef<HTMLDivElement>(null);
-  const botName = process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME;
-  const showDevButton = process.env.NEXT_PUBLIC_DEV_LOGIN === "true" || !botName;
+  const [tab, setTab] = useState<"login" | "signup">("login");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    // Check if already logged in
-    fetch("/api/auth/me")
-      .then((r) => r.json())
-      .then((d) => { if (d.user) router.push("/dashboard"); });
+  // Login form state
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
 
-    // Telegram Login Widget callback
-    window.onTelegramAuth = async (user: any) => {
-      const res = await fetch("/api/auth/telegram", {
+  // Signup form state
+  const [signupName, setSignupName] = useState("");
+  const [signupEmail, setSignupEmail] = useState("");
+  const [signupPassword, setSignupPassword] = useState("");
+  const [signupConfirm, setSignupConfirm] = useState("");
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(user),
+        body: JSON.stringify({ email: loginEmail, password: loginPassword }),
       });
-      if (res.ok) {
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Login failed");
+      } else {
         router.push("/dashboard");
       }
-    };
-
-    // Load Telegram widget script
-    if (botName && containerRef.current) {
-      const script = document.createElement("script");
-      script.src = "https://telegram.org/js/telegram-widget.js?22";
-      script.setAttribute("data-telegram-login", botName);
-      script.setAttribute("data-size", "large");
-      script.setAttribute("data-onauth", "onTelegramAuth(user)");
-      script.setAttribute("data-request-access", "write");
-      script.async = true;
-      containerRef.current.appendChild(script);
+    } finally {
+      setLoading(false);
     }
-
-    return () => {
-      delete window.onTelegramAuth;
-    };
-  }, [router]);
-
-  const devLogin = async () => {
-    const mockUser = {
-      id: 123456789,
-      first_name: "Budi",
-      last_name: "Santoso",
-      username: "demo_user",
-      auth_date: Math.floor(Date.now() / 1000),
-      hash: "dev_bypass",
-    };
-    const res = await fetch("/api/auth/telegram", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(mockUser),
-    });
-    if (res.ok) router.push("/dashboard");
   };
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    if (signupPassword !== signupConfirm) {
+      setError("Passwords do not match");
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: signupName, email: signupEmail, password: signupPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Registration failed");
+      } else {
+        router.push("/dashboard");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const inputClass =
+    "w-full px-4 py-3 bg-[#0F172A] border border-[#334155] rounded-lg text-[#F8FAFC] placeholder-[#475569] focus:outline-none focus:border-violet-500 text-sm";
 
   return (
     <div className="min-h-screen bg-[#0F172A] flex flex-col items-center justify-center p-4">
-      {/* Background gradient */}
       <div className="absolute inset-0 bg-gradient-to-br from-violet-900/20 via-transparent to-blue-900/10 pointer-events-none" />
 
       <div className="relative w-full max-w-sm">
@@ -84,40 +84,124 @@ export default function LoginPage() {
 
         {/* Card */}
         <div className="bg-[#1E293B] border border-[#475569] rounded-2xl p-8">
-          <h2 className="text-xl font-semibold text-[#F8FAFC] text-center mb-2">Masuk ke Celengan</h2>
-          <p className="text-sm text-[#94A3B8] text-center mb-8">
-            Gunakan akun Telegram-mu untuk masuk.<br />Tidak perlu password.
-          </p>
+          {/* Tabs */}
+          <div className="flex rounded-lg bg-[#0F172A] p-1 mb-6">
+            <button
+              onClick={() => { setTab("login"); setError(""); }}
+              className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
+                tab === "login"
+                  ? "bg-violet-600 text-white"
+                  : "text-[#94A3B8] hover:text-[#F8FAFC]"
+              }`}
+            >
+              Masuk
+            </button>
+            <button
+              onClick={() => { setTab("signup"); setError(""); }}
+              className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
+                tab === "signup"
+                  ? "bg-violet-600 text-white"
+                  : "text-[#94A3B8] hover:text-[#F8FAFC]"
+              }`}
+            >
+              Daftar
+            </button>
+          </div>
 
-          {/* Telegram Widget Container */}
-          <div className="flex justify-center mb-6" ref={containerRef} />
-
-          {/* Dev bypass */}
-          {showDevButton && (
-            <div className="mt-4 pt-4 border-t border-[#334155]">
-              <p className="text-xs text-[#475569] text-center mb-3">Development Mode</p>
-              <button
-                onClick={devLogin}
-                className="w-full py-3 px-4 bg-[#334155] hover:bg-[#475569] text-[#94A3B8] rounded-lg text-sm font-medium transition-colors border border-[#475569]"
-              >
-                🔧 Login as Demo User (Dev Only)
-              </button>
+          {error && (
+            <div className="mb-4 px-4 py-3 bg-red-900/30 border border-red-700 rounded-lg text-red-400 text-sm">
+              {error}
             </div>
           )}
-        </div>
 
-        {/* Features */}
-        <div className="mt-8 grid grid-cols-3 gap-4 text-center">
-          {[
-            { emoji: "🤖", text: "Bot Telegram" },
-            { emoji: "📊", text: "Dashboard Real-time" },
-            { emoji: "🎯", text: "Savings Goals" },
-          ].map((f) => (
-            <div key={f.text} className="bg-[#1E293B]/60 rounded-xl p-3 border border-[#334155]">
-              <p className="text-2xl mb-1">{f.emoji}</p>
-              <p className="text-xs text-[#64748B]">{f.text}</p>
-            </div>
-          ))}
+          {tab === "login" ? (
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <label className="block text-xs text-[#94A3B8] mb-1.5">Email</label>
+                <input
+                  type="email"
+                  required
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  placeholder="kamu@email.com"
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-[#94A3B8] mb-1.5">Password</label>
+                <input
+                  type="password"
+                  required
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className={inputClass}
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white rounded-lg text-sm font-semibold transition-colors"
+              >
+                {loading ? "Masuk..." : "Masuk"}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleSignup} className="space-y-4">
+              <div>
+                <label className="block text-xs text-[#94A3B8] mb-1.5">Nama</label>
+                <input
+                  type="text"
+                  required
+                  value={signupName}
+                  onChange={(e) => setSignupName(e.target.value)}
+                  placeholder="Nama lengkap"
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-[#94A3B8] mb-1.5">Email</label>
+                <input
+                  type="email"
+                  required
+                  value={signupEmail}
+                  onChange={(e) => setSignupEmail(e.target.value)}
+                  placeholder="kamu@email.com"
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-[#94A3B8] mb-1.5">Password</label>
+                <input
+                  type="password"
+                  required
+                  minLength={8}
+                  value={signupPassword}
+                  onChange={(e) => setSignupPassword(e.target.value)}
+                  placeholder="Min. 8 karakter"
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-[#94A3B8] mb-1.5">Konfirmasi Password</label>
+                <input
+                  type="password"
+                  required
+                  value={signupConfirm}
+                  onChange={(e) => setSignupConfirm(e.target.value)}
+                  placeholder="••••••••"
+                  className={inputClass}
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white rounded-lg text-sm font-semibold transition-colors"
+              >
+                {loading ? "Mendaftar..." : "Buat Akun"}
+              </button>
+            </form>
+          )}
         </div>
 
         <p className="text-center text-xs text-[#475569] mt-6">

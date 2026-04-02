@@ -9,9 +9,8 @@ import { cn } from "@/lib/utils";
 
 interface User {
   id: string;
-  firstName: string;
-  username?: string;
-  photoUrl?: string;
+  name: string;
+  email: string;
   plan: string;
 }
 
@@ -52,7 +51,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   };
 
   const handleLogout = async () => {
-    await fetch("/api/auth/telegram", { method: "DELETE" });
+    await fetch("/api/auth/logout", { method: "POST" });
     router.push("/login");
   };
 

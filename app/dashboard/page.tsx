@@ -12,7 +12,7 @@ import { CategoryDonutChart } from "@/components/dashboard/category-donut-chart"
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { formatRupiah, formatDateShort, getDayGreeting } from "@/lib/format";
 import { useSSE } from "@/hooks/use-sse";
-import { Bell, ExternalLink, Lightbulb, RefreshCw, X } from "lucide-react";
+import { Bell, ExternalLink, Lightbulb, RefreshCw, X, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { formatDate } from "date-fns";
@@ -68,6 +68,9 @@ interface BudgetTx {
 }
 
 export default function DashboardPage() {
+  const now = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState("Kamu");
@@ -79,8 +82,8 @@ export default function DashboardPage() {
     setSelectedBudget(budget);
     setBudgetTxLoading(true);
     try {
-      const month = data?.month ?? new Date().getMonth() + 1;
-      const year = data?.year ?? new Date().getFullYear();
+      const month = data?.month ?? selectedMonth;
+      const year = data?.year ?? selectedYear;
       const from = `${year}-${String(month).padStart(2, "0")}-01`;
       const to = `${year}-${String(month).padStart(2, "0")}-${new Date(year, month, 0).getDate()}`;
       const res = await fetch(`/api/transactions?categoryId=${budget.category.id}&dateFrom=${from}&dateTo=${to}&limit=20`);
@@ -89,11 +92,12 @@ export default function DashboardPage() {
     } finally {
       setBudgetTxLoading(false);
     }
-  }, [data?.month, data?.year]);
+  }, [data?.month, data?.year, selectedMonth, selectedYear]);
 
-  const fetchDashboard = useCallback(async () => {
+  const fetchDashboard = useCallback(async (month: number, year: number) => {
+    setLoading(true);
     try {
-      const res = await fetch("/api/dashboard");
+      const res = await fetch(`/api/dashboard?month=${month}&year=${year}`);
       if (!res.ok) return;
       const json = await res.json();
       setData(json);
@@ -105,11 +109,23 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    fetchDashboard();
+    fetchDashboard(selectedMonth, selectedYear);
     fetch("/api/auth/me").then((r) => r.json()).then((d) => {
       if (d.user) setUserName(d.user.name);
     });
-  }, [fetchDashboard]);
+  }, [fetchDashboard, selectedMonth, selectedYear]);
+
+  const goToPrevMonth = () => {
+    if (selectedMonth === 1) { setSelectedMonth(12); setSelectedYear((y) => y - 1); }
+    else setSelectedMonth((m) => m - 1);
+  };
+
+  const goToNextMonth = () => {
+    const isCurrentMonth = selectedMonth === now.getMonth() + 1 && selectedYear === now.getFullYear();
+    if (isCurrentMonth) return;
+    if (selectedMonth === 12) { setSelectedMonth(1); setSelectedYear((y) => y + 1); }
+    else setSelectedMonth((m) => m + 1);
+  };
 
   // Real-time SSE updates
   useSSE({
@@ -139,7 +155,7 @@ export default function DashboardPage() {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={fetchDashboard}
+              onClick={() => fetchDashboard(selectedMonth, selectedYear)}
               className="p-2 text-[#64748B] hover:text-[#F8FAFC] hover:bg-[#334155] rounded-lg transition-colors"
             >
               <RefreshCw size={18} />
@@ -150,12 +166,25 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Month label */}
-        {data && (
-          <p className="text-xs text-[#64748B] font-medium uppercase tracking-wider">
-            {monthNames[(data.month - 1)]} {data.year}
-          </p>
-        )}
+        {/* Month/Year Navigator */}
+        <div className="flex items-center gap-1">
+          <button
+            onClick={goToPrevMonth}
+            className="p-1.5 text-[#64748B] hover:text-[#F8FAFC] hover:bg-[#334155] rounded-lg transition-colors"
+          >
+            <ChevronLeft size={16} />
+          </button>
+          <span className="text-sm font-semibold text-[#F8FAFC] min-w-[120px] text-center">
+            {monthNames[selectedMonth - 1]} {selectedYear}
+          </span>
+          <button
+            onClick={goToNextMonth}
+            disabled={selectedMonth === now.getMonth() + 1 && selectedYear === now.getFullYear()}
+            className="p-1.5 text-[#64748B] hover:text-[#F8FAFC] hover:bg-[#334155] rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            <ChevronRight size={16} />
+          </button>
+        </div>
 
         {/* KPI Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
@@ -233,7 +262,7 @@ export default function DashboardPage() {
         {/* Budget Progress */}
         <div className="bg-[#1E293B] border border-[#475569] rounded-xl p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-[#F8FAFC]">Budget Bulan Ini</h2>
+            <h2 className="text-sm font-semibold text-[#F8FAFC]">Budget {monthNames[selectedMonth - 1]}</h2>
             <Link href="/budget" className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1">
               Kelola <ExternalLink size={12} />
             </Link>

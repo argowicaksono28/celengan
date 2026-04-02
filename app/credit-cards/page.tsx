@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { formatRupiah } from "@/lib/format";
-import { Plus, X, CreditCard as CreditCardIcon, Pencil, Check } from "lucide-react";
+import { Plus, X, CreditCard as CreditCardIcon, Check } from "lucide-react";
 import { toast } from "sonner";
 
 interface CreditCard {
@@ -25,7 +25,22 @@ const BANK_COLORS: Record<string, string> = {
   CIMB: "#DC2626", HSBC: "#EF4444", Danamon: "#7C3AED", default: "#3B82F6",
 };
 
-function CardVisual({ card, isSelected, onClick }: { card: CreditCard; isSelected: boolean; onClick: () => void }) {
+function CardVisual({
+  card,
+  isSelected,
+  onClick,
+  onSaveBalance,
+}: {
+  card: CreditCard;
+  isSelected: boolean;
+  onClick: () => void;
+  onSaveBalance: (newBalance: number) => Promise<void>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [inputVal, setInputVal] = useState("");
+  const [saving, setSaving] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
   const days = (() => {
     const now = new Date();
     let due = new Date(now.getFullYear(), now.getMonth(), card.dueDate);
@@ -33,76 +48,132 @@ function CardVisual({ card, isSelected, onClick }: { card: CreditCard; isSelecte
     return Math.ceil((due.getTime() - now.getTime()) / 86400000);
   })();
 
+  const startEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setInputVal(String(card.balance));
+    setEditing(true);
+    setTimeout(() => inputRef.current?.focus(), 50);
+  };
+
+  const handleSave = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const val = parseFloat(inputVal);
+    if (isNaN(val) || val < 0) { toast.error("Jumlah tidak valid"); return; }
+    setSaving(true);
+    try {
+      await onSaveBalance(val);
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancel = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditing(false);
+  };
+
   return (
-    <button
-      onClick={onClick}
-      className={`flex-shrink-0 relative transition-all duration-200 ${isSelected ? "scale-105" : "opacity-70 hover:opacity-90 hover:scale-102"}`}
-      style={{ width: "288px", height: "176px" }}
+    <div
+      onClick={!editing ? onClick : undefined}
+      className={`flex-shrink-0 relative cursor-pointer transition-all duration-200 select-none ${
+        isSelected ? "scale-105" : "opacity-70 hover:opacity-100"
+      }`}
+      style={{ width: "270px", height: "168px" }}
     >
-      {/* Card body with left diagonal cut */}
+      {/* Card body — matte dark glass */}
       <div
-        className="absolute inset-0 overflow-hidden"
+        className="absolute inset-0 rounded-2xl overflow-hidden"
         style={{
-          clipPath: "polygon(28px 0%, 100% 0%, 100% 100%, 0% 100%)",
-          background: `linear-gradient(135deg, ${card.color}ee 0%, ${card.color} 60%, ${card.color}bb 100%)`,
-          borderRadius: "0 16px 16px 0",
+          background: "linear-gradient(145deg, #1c1c2e 0%, #16213e 50%, #0f3460 100%)",
+          boxShadow: isSelected
+            ? "0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.08)"
+            : "0 8px 24px rgba(0,0,0,0.4)",
         }}
       >
-        {/* Decorative circles */}
-        <div className="absolute -right-8 -top-8 w-40 h-40 rounded-full opacity-10" style={{ background: "white" }} />
-        <div className="absolute -right-4 -bottom-10 w-32 h-32 rounded-full opacity-10" style={{ background: "white" }} />
+        {/* Subtle texture overlay */}
+        <div className="absolute inset-0 opacity-5" style={{
+          backgroundImage: "repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255,255,255,0.1) 2px, rgba(255,255,255,0.1) 4px)"
+        }} />
 
-        {/* Chip */}
-        <div className="absolute top-5 left-10">
-          <div className="w-9 h-7 rounded-md border-2 border-white/40 bg-gradient-to-br from-yellow-200/60 to-yellow-400/40 flex items-center justify-center">
-            <div className="grid grid-cols-2 gap-0.5">
-              <div className="w-1.5 h-1.5 bg-yellow-300/70 rounded-sm" />
-              <div className="w-1.5 h-1.5 bg-yellow-300/70 rounded-sm" />
-              <div className="w-1.5 h-1.5 bg-yellow-300/70 rounded-sm" />
-              <div className="w-1.5 h-1.5 bg-yellow-300/70 rounded-sm" />
+        {/* Colored accent glow from bank color */}
+        <div className="absolute top-0 right-0 w-32 h-32 rounded-full opacity-10 blur-2xl"
+          style={{ background: card.color, transform: "translate(30%, -30%)" }} />
+
+        {/* Top row: bank + last4 */}
+        <div className="absolute top-4 left-5 right-5 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{ background: card.color }}>
+              <span className="text-white font-bold text-[9px]">
+                {card.bank.slice(0, 1)}
+              </span>
+            </div>
+            <span className="text-white/80 text-xs font-semibold tracking-wide">{card.bank}</span>
+          </div>
+          <span className="text-white/50 font-mono text-xs tracking-widest">•••• {card.last4}</span>
+        </div>
+
+        {/* Center: large balance — tap to edit */}
+        <div className="absolute inset-0 flex items-center justify-start pl-5">
+          {editing ? (
+            <div className="flex flex-col gap-2 w-full pr-5" onClick={(e) => e.stopPropagation()}>
+              <input
+                ref={inputRef}
+                type="number"
+                value={inputVal}
+                onChange={(e) => setInputVal(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSave(e as any);
+                  if (e.key === "Escape") handleCancel(e as any);
+                }}
+                className="w-full bg-white/10 border border-white/30 text-white rounded-lg px-3 py-2 text-lg font-mono font-bold outline-none focus:border-white/60"
+                placeholder="0"
+              />
+              <div className="flex gap-2">
+                <button onClick={handleCancel}
+                  className="flex-1 py-1 text-xs text-white/60 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10">
+                  Batal
+                </button>
+                <button onClick={handleSave} disabled={saving}
+                  className="flex-1 flex items-center justify-center gap-1 py-1 text-xs text-white bg-violet-600 hover:bg-violet-700 disabled:opacity-50 rounded-lg font-medium">
+                  <Check size={11} />
+                  {saving ? "..." : "Simpan"}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={startEdit}
+              className="text-left group"
+              title="Klik untuk edit tagihan"
+            >
+              <p className="text-white/40 text-[10px] uppercase tracking-widest mb-0.5">Tagihan</p>
+              <p className="text-white font-mono font-bold text-2xl leading-tight group-hover:text-violet-200 transition-colors">
+                {formatRupiah(card.balance)}
+              </p>
+              <p className="text-white/30 text-[9px] mt-0.5 group-hover:text-white/50 transition-colors">tap to edit</p>
+            </button>
+          )}
+        </div>
+
+        {/* Bottom row: billing/due dates + days */}
+        {!editing && (
+          <div className="absolute bottom-4 left-5 right-5 flex items-end justify-between">
+            <div>
+              <p className="text-white/30 text-[9px] uppercase tracking-wider">Tgl Billing / Tempo</p>
+              <p className="text-white/70 font-mono text-sm font-medium">{card.billingDate} / {card.dueDate}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-white/30 text-[9px] uppercase tracking-wider">Jatuh Tempo</p>
+              <p className={`font-mono text-sm font-semibold ${days <= 3 ? "text-red-400" : "text-white/70"}`}>
+                {days}h lagi
+              </p>
             </div>
           </div>
-        </div>
-
-        {/* Bank name top right */}
-        <div className="absolute top-5 right-5">
-          <p className="text-white/80 text-xs font-bold uppercase tracking-widest">{card.bank}</p>
-        </div>
-
-        {/* Card number */}
-        <div className="absolute top-16 left-10">
-          <p className="text-white/70 font-mono text-sm tracking-[0.25em]">•••• •••• •••• {card.last4}</p>
-        </div>
-
-        {/* Card name */}
-        <div className="absolute bottom-10 left-10">
-          <p className="text-white font-semibold text-base">{card.name}</p>
-        </div>
-
-        {/* Bottom info */}
-        <div className="absolute bottom-4 left-10 right-5 flex justify-between items-end">
-          <div>
-            <p className="text-white/50 text-[9px] uppercase tracking-wider">Tagihan</p>
-            <p className="text-white font-mono font-bold text-sm">{formatRupiah(card.balance)}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-white/50 text-[9px] uppercase tracking-wider">Jatuh Tempo</p>
-            <p className={`font-mono font-semibold text-sm ${days <= 3 ? "text-red-300" : "text-white"}`}>{days}h lagi</p>
-          </div>
-        </div>
-
-        {/* Selection indicator */}
-        {isSelected && (
-          <div className="absolute inset-0 ring-2 ring-white/40 rounded-r-2xl" style={{ clipPath: "polygon(28px 0%, 100% 0%, 100% 100%, 0% 100%)" }} />
         )}
       </div>
-
-      {/* Left edge accent line */}
-      <div
-        className="absolute left-0 top-0 bottom-0 w-1"
-        style={{ background: `${card.color}`, transform: "skewY(-4deg)", transformOrigin: "top" }}
-      />
-    </button>
+    </div>
   );
 }
 
@@ -113,18 +184,14 @@ export default function CreditCardsPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [newCard, setNewCard] = useState({ name: "", bank: "BCA", last4: "", limit: "", billingDate: "25", dueDate: "5" });
 
-  // Balance editing state
-  const [editingBalance, setEditingBalance] = useState(false);
-  const [balanceInput, setBalanceInput] = useState("");
-  const [savingBalance, setSavingBalance] = useState(false);
-
   const fetchCards = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/credit-cards");
       const data = await res.json();
       setCards(data.cards ?? []);
-      if (data.cards?.length > 0) setSelected((prev) => data.cards.find((c: CreditCard) => c.id === prev?.id) ?? data.cards[0]);
+      if (data.cards?.length > 0)
+        setSelected((prev) => data.cards.find((c: CreditCard) => c.id === prev?.id) ?? data.cards[0]);
     } finally {
       setLoading(false);
     }
@@ -149,34 +216,26 @@ export default function CreditCardsPage() {
     if (res.ok) { toast.success("Kartu kredit ditambahkan"); setShowAddModal(false); fetchCards(); }
   };
 
-  const handleSaveBalance = async () => {
-    if (!selected) return;
-    const newBalance = parseFloat(balanceInput.replace(/\./g, "").replace(",", "."));
-    if (isNaN(newBalance) || newBalance < 0) { toast.error("Masukkan jumlah yang valid"); return; }
-    setSavingBalance(true);
-    try {
-      const res = await fetch(`/api/credit-cards/${selected.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ balance: newBalance }),
-      });
-      if (res.ok) {
-        const delta = newBalance - selected.balance;
-        toast.success(delta > 0 ? `Tagihan bertambah ${formatRupiah(Math.abs(delta))} — dicatat sebagai pengeluaran` : delta < 0 ? `Tagihan berkurang ${formatRupiah(Math.abs(delta))} — dicatat sebagai pemasukan` : "Tidak ada perubahan");
-        setEditingBalance(false);
-        fetchCards();
-      } else {
-        toast.error("Gagal menyimpan");
-      }
-    } finally {
-      setSavingBalance(false);
+  const handleSaveBalance = async (cardId: string, currentBalance: number, newBalance: number) => {
+    const res = await fetch(`/api/credit-cards/${cardId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ balance: newBalance }),
+    });
+    if (res.ok) {
+      const delta = newBalance - currentBalance;
+      toast.success(
+        delta > 0
+          ? `Tagihan +${formatRupiah(delta)} — dicatat sebagai pengeluaran`
+          : delta < 0
+          ? `Tagihan −${formatRupiah(Math.abs(delta))} — dicatat sebagai pemasukan`
+          : "Tidak ada perubahan"
+      );
+      fetchCards();
+    } else {
+      toast.error("Gagal menyimpan");
+      throw new Error("save failed");
     }
-  };
-
-  const startEditBalance = () => {
-    if (!selected) return;
-    setBalanceInput(String(selected.balance));
-    setEditingBalance(true);
   };
 
   const daysUntilDue = (dueDate: number) => {
@@ -199,7 +258,9 @@ export default function CreditCardsPage() {
 
         {loading ? (
           <div className="flex gap-6 overflow-x-auto pb-2">
-            {Array.from({ length: 2 }).map((_, i) => <div key={i} className="w-72 h-44 bg-[#1E293B] animate-pulse rounded-2xl flex-shrink-0" />)}
+            {Array.from({ length: 2 }).map((_, i) => (
+              <div key={i} className="w-[270px] h-[168px] bg-[#1E293B] animate-pulse rounded-2xl flex-shrink-0" />
+            ))}
           </div>
         ) : cards.length === 0 ? (
           <div className="bg-[#1E293B] border border-[#475569] rounded-xl p-8 text-center">
@@ -208,62 +269,23 @@ export default function CreditCardsPage() {
           </div>
         ) : (
           <>
-            {/* Card Carousel */}
-            <div className="flex gap-6 overflow-x-auto pb-2 pl-1 pt-1">
+            <div className="flex gap-6 overflow-x-auto pb-2 pl-1 pt-2">
               {cards.map((card) => (
                 <CardVisual
                   key={card.id}
                   card={card}
                   isSelected={selected?.id === card.id}
-                  onClick={() => { setSelected(card); setEditingBalance(false); }}
+                  onClick={() => setSelected(card)}
+                  onSaveBalance={(newBal) => handleSaveBalance(card.id, card.balance, newBal)}
                 />
               ))}
             </div>
 
-            {/* Selected Card Detail */}
             {selected && (
               <>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  {/* Editable balance */}
-                  <div className="bg-[#1E293B] border border-[#475569] rounded-xl p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs text-[#94A3B8] uppercase tracking-wider">Tagihan Saat Ini</p>
-                      {!editingBalance ? (
-                        <button onClick={startEditBalance} className="text-[#475569] hover:text-violet-400 transition-colors">
-                          <Pencil size={13} />
-                        </button>
-                      ) : (
-                        <button onClick={() => setEditingBalance(false)} className="text-[#475569] hover:text-red-400 transition-colors">
-                          <X size={13} />
-                        </button>
-                      )}
-                    </div>
-                    {editingBalance ? (
-                      <div className="space-y-2">
-                        <input
-                          type="number"
-                          value={balanceInput}
-                          onChange={(e) => setBalanceInput(e.target.value)}
-                          className="w-full bg-[#0F172A] border border-violet-500 text-[#F8FAFC] rounded-lg px-3 py-2 text-sm font-mono outline-none"
-                          placeholder="0"
-                          autoFocus
-                          onKeyDown={(e) => e.key === "Enter" && handleSaveBalance()}
-                        />
-                        <button
-                          onClick={handleSaveBalance}
-                          disabled={savingBalance}
-                          className="w-full flex items-center justify-center gap-1.5 py-1.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white rounded-lg text-xs font-medium"
-                        >
-                          <Check size={12} />
-                          {savingBalance ? "Menyimpan..." : "Simpan"}
-                        </button>
-                      </div>
-                    ) : (
-                      <p className="font-mono font-bold text-xl text-[#EF4444]">{formatRupiah(selected.balance)}</p>
-                    )}
-                  </div>
-
                   {[
+                    { label: "Tagihan Saat Ini", value: formatRupiah(selected.balance), color: "#EF4444" },
                     { label: "Kredit Tersedia", value: formatRupiah(selected.limit - selected.balance), color: "#10B981" },
                     { label: "Utilisasi", value: `${Math.round(selected.utilization)}%`, color: selected.utilization > 80 ? "#EF4444" : selected.utilization > 60 ? "#F59E0B" : "#10B981" },
                     { label: "Hari Jatuh Tempo", value: `${daysUntilDue(selected.dueDate)} hari`, color: daysUntilDue(selected.dueDate) <= 3 ? "#EF4444" : "#F8FAFC" },
@@ -275,7 +297,6 @@ export default function CreditCardsPage() {
                   ))}
                 </div>
 
-                {/* Utilization Bar */}
                 <div className="bg-[#1E293B] border border-[#475569] rounded-xl p-5">
                   <div className="flex justify-between mb-3">
                     <span className="text-sm font-medium text-[#F8FAFC]">Utilisasi Kredit</span>
@@ -293,7 +314,7 @@ export default function CreditCardsPage() {
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60" onClick={() => setShowAddModal(false)} />
-          <div className="relative bg-[#1E293B] border border-[#475569] rounded-xl p-6 w-full max-w-sm animate-fade-in">
+          <div className="relative bg-[#1E293B] border border-[#475569] rounded-xl p-6 w-full max-w-sm">
             <h3 className="text-lg font-semibold text-[#F8FAFC] mb-4">Tambah Kartu Kredit</h3>
             <div className="space-y-4">
               {[

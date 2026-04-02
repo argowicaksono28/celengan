@@ -130,7 +130,7 @@ export default function DashboardPage() {
   // Real-time SSE updates
   useSSE({
     transaction: () => {
-      fetchDashboard();
+      fetchDashboard(selectedMonth, selectedYear);
       toast.success("Transaksi baru dicatat!", { icon: "✅" });
     },
     budget_alert: (d: any) => {

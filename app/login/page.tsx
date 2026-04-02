@@ -13,7 +13,7 @@ export default function LoginPage() {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const botName = process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME;
-  const isDev = !botName;
+  const showDevButton = process.env.NEXT_PUBLIC_DEV_LOGIN === "true" || !botName;
 
   useEffect(() => {
     // Check if already logged in
@@ -93,7 +93,7 @@ export default function LoginPage() {
           <div className="flex justify-center mb-6" ref={containerRef} />
 
           {/* Dev bypass */}
-          {isDev && (
+          {showDevButton && (
             <div className="mt-4 pt-4 border-t border-[#334155]">
               <p className="text-xs text-[#475569] text-center mb-3">Development Mode</p>
               <button

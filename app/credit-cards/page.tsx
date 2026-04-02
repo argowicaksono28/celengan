@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { formatRupiah } from "@/lib/format";
-import { Plus, X, CreditCard as CreditCardIcon, Check } from "lucide-react";
+import { Plus, X, CreditCard as CreditCardIcon, Check, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface CreditCard {
@@ -30,11 +30,13 @@ function CardVisual({
   isSelected,
   onClick,
   onSaveBalance,
+  onDelete,
 }: {
   card: CreditCard;
   isSelected: boolean;
   onClick: () => void;
   onSaveBalance: (newBalance: number) => Promise<void>;
+  onDelete: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [inputVal, setInputVal] = useState("");
@@ -76,7 +78,7 @@ function CardVisual({
   return (
     <div
       onClick={!editing ? onClick : undefined}
-      className={`flex-shrink-0 relative cursor-pointer transition-all duration-200 select-none ${
+      className={`flex-shrink-0 relative cursor-pointer transition-all duration-200 select-none group/card ${
         isSelected ? "scale-105" : "opacity-70 hover:opacity-100"
       }`}
       style={{ width: "270px", height: "168px" }}
@@ -173,6 +175,15 @@ function CardVisual({
           </div>
         )}
       </div>
+
+      {/* Delete button — top-right, visible on hover */}
+      <button
+        onClick={(e) => { e.stopPropagation(); onDelete(); }}
+        className="absolute top-3 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-black/40 hover:bg-red-500 text-white/70 hover:text-white flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-all shadow z-10"
+        title="Hapus kartu"
+      >
+        <X size={12} />
+      </button>
     </div>
   );
 }
@@ -201,12 +212,13 @@ export default function CreditCardsPage() {
 
   const handleAdd = async () => {
     if (!newCard.name || !newCard.last4 || !newCard.limit) { toast.error("Isi semua field wajib"); return; }
+    if (!/^\d{4}$/.test(newCard.last4)) { toast.error("4 Digit Terakhir harus tepat 4 angka"); return; }
     const res = await fetch("/api/credit-cards", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...newCard,
-        last4: newCard.last4.slice(-4),
+        last4: newCard.last4,
         limit: parseFloat(newCard.limit),
         billingDate: parseInt(newCard.billingDate),
         dueDate: parseInt(newCard.dueDate),
@@ -214,6 +226,18 @@ export default function CreditCardsPage() {
       }),
     });
     if (res.ok) { toast.success("Kartu kredit ditambahkan"); setShowAddModal(false); fetchCards(); }
+  };
+
+  const handleDelete = async (cardId: string) => {
+    if (!confirm("Hapus kartu kredit ini?")) return;
+    const res = await fetch(`/api/credit-cards/${cardId}`, { method: "DELETE" });
+    if (res.ok) {
+      toast.success("Kartu kredit dihapus");
+      setSelected((prev) => (prev?.id === cardId ? null : prev));
+      fetchCards();
+    } else {
+      toast.error("Gagal menghapus");
+    }
   };
 
   const handleSaveBalance = async (cardId: string, currentBalance: number, newBalance: number) => {
@@ -277,6 +301,7 @@ export default function CreditCardsPage() {
                   isSelected={selected?.id === card.id}
                   onClick={() => setSelected(card)}
                   onSaveBalance={(newBal) => handleSaveBalance(card.id, card.balance, newBal)}
+                  onDelete={() => handleDelete(card.id)}
                 />
               ))}
             </div>
@@ -320,11 +345,11 @@ export default function CreditCardsPage() {
               {[
                 { label: "Nama Kartu", key: "name", placeholder: "BCA Visa Platinum" },
                 { label: "Bank", key: "bank", placeholder: "BCA" },
-                { label: "4 Digit Terakhir", key: "last4", placeholder: "4521" },
+                { label: "4 Digit Terakhir", key: "last4", placeholder: "4521", maxLength: 4 },
                 { label: "Limit (Rp)", key: "limit", placeholder: "15000000", type: "number" },
                 { label: "Tanggal Billing", key: "billingDate", placeholder: "25", type: "number" },
                 { label: "Tanggal Jatuh Tempo", key: "dueDate", placeholder: "5", type: "number" },
-              ].map(({ label, key, placeholder, type }) => (
+              ].map(({ label, key, placeholder, type, maxLength }: any) => (
                 <div key={key}>
                   <label className="text-xs text-[#94A3B8] block mb-1.5">{label}</label>
                   <input
@@ -332,6 +357,7 @@ export default function CreditCardsPage() {
                     value={(newCard as any)[key]}
                     onChange={(e) => setNewCard((p) => ({ ...p, [key]: e.target.value }))}
                     placeholder={placeholder}
+                    maxLength={maxLength}
                     className="w-full bg-[#334155] border border-[#475569] text-[#F8FAFC] rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-500 placeholder-[#475569]"
                   />
                 </div>

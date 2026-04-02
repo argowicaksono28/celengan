@@ -83,6 +83,28 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   const user = await getAuthUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  await prisma.creditCard.deleteMany({ where: { id: params.id, userId: user.id } });
+  const card = await prisma.creditCard.findFirst({ where: { id: params.id, userId: user.id } });
+  if (!card) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  // Fetch all transactions linked to this CC so we can reverse account balances
+  const linkedTxs = await prisma.transaction.findMany({ where: { creditCardId: params.id } });
+
+  await prisma.$transaction(async (db) => {
+    // Reverse account balance for each linked transaction
+    for (const tx of linkedTxs) {
+      if (tx.type === "EXPENSE") {
+        await db.account.update({ where: { id: tx.accountId }, data: { balance: { increment: tx.amount } } });
+      } else if (tx.type === "INCOME") {
+        await db.account.update({ where: { id: tx.accountId }, data: { balance: { decrement: tx.amount } } });
+      }
+    }
+
+    // Delete all linked transactions
+    await db.transaction.deleteMany({ where: { creditCardId: params.id } });
+
+    // Delete the credit card
+    await db.creditCard.delete({ where: { id: params.id } });
+  });
+
   return NextResponse.json({ success: true });
 }

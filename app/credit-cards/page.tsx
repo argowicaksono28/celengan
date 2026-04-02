@@ -229,7 +229,7 @@ export default function CreditCardsPage() {
   };
 
   const handleDelete = async (cardId: string) => {
-    if (!confirm("Hapus kartu kredit ini?")) return;
+    if (!confirm("Hapus kartu kredit ini?\n\nSemua transaksi yang terkait dengan kartu ini akan ikut dihapus dan saldo rekening akan dikembalikan.")) return;
     const res = await fetch(`/api/credit-cards/${cardId}`, { method: "DELETE" });
     if (res.ok) {
       toast.success("Kartu kredit dihapus");

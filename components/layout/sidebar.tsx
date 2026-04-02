@@ -117,7 +117,7 @@ export function Sidebar({ user, theme = "dark", onThemeToggle, onLogout }: Sideb
         {user && (
           <div className={cn("flex items-center gap-3 px-3 py-2 mt-2 rounded-lg", collapsed ? "justify-center" : "")}>
             <div className="w-8 h-8 rounded-full bg-violet-600 flex items-center justify-center flex-shrink-0 text-white font-semibold text-sm">
-              {user.name.charAt(0).toUpperCase()}
+              {(user.name ?? "?").charAt(0).toUpperCase()}
             </div>
             {!collapsed && (
               <div className="flex-1 min-w-0">

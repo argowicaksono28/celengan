@@ -1,13 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/session";
-import { z } from "zod";
-
-const updateSchema = z.object({
-  name: z.string().optional(),
-  color: z.string().optional(),
-  isDefault: z.boolean().optional(),
-});
 
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   const user = await getAuthUser();
@@ -17,12 +10,44 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   if (!account) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const body = await request.json();
-  const parsed = updateSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
+  // Balance adjustment — set balance directly and record a transaction
+  if (typeof body.balance === "number") {
+    const currentBalance = Number(account.balance);
+    const newBalance = body.balance;
+    const delta = newBalance - currentBalance;
+
+    if (delta === 0) return NextResponse.json({ account: { ...account, balance: currentBalance } });
+
+    await prisma.$transaction(async (db) => {
+      // Set exact balance
+      await db.account.update({
+        where: { id: params.id },
+        data: { balance: newBalance },
+      });
+
+      // Record adjustment transaction (no secondary balance update)
+      await db.transaction.create({
+        data: {
+          userId: user.id,
+          accountId: params.id,
+          type: delta > 0 ? "INCOME" : "EXPENSE",
+          amount: Math.abs(delta),
+          note: "Penyesuaian saldo",
+          source: "WEB",
+        },
+      });
+    });
+
+    const updated = await prisma.account.findUnique({ where: { id: params.id } });
+    return NextResponse.json({ account: { ...updated, balance: Number(updated!.balance) } });
+  }
+
+  // Other fields (name, color, isDefault)
+  const { name, color, isDefault } = body;
   const updated = await prisma.account.update({
     where: { id: params.id },
-    data: parsed.data,
+    data: { ...(name && { name }), ...(color && { color }), ...(isDefault !== undefined && { isDefault }) },
   });
 
   return NextResponse.json({ account: { ...updated, balance: Number(updated.balance) } });

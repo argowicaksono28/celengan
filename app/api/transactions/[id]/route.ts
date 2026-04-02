@@ -42,7 +42,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   if (!tx) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   await prisma.$transaction(async (db) => {
-    // Reverse balance
+    // Reverse account balance
     if (tx.type === "INCOME") {
       await db.account.update({ where: { id: tx.accountId }, data: { balance: { decrement: tx.amount } } });
     } else if (tx.type === "EXPENSE") {
@@ -53,6 +53,18 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
         await db.account.update({ where: { id: tx.transferToId }, data: { balance: { decrement: tx.amount } } });
       }
     }
+
+    // Reverse credit card balance if this was a CC adjustment transaction
+    if (tx.creditCardId) {
+      // EXPENSE on CC = tagihan naik, so deleting it should decrease tagihan
+      // INCOME on CC = tagihan turun, so deleting it should increase tagihan
+      if (tx.type === "EXPENSE") {
+        await db.creditCard.update({ where: { id: tx.creditCardId }, data: { balance: { decrement: tx.amount } } });
+      } else if (tx.type === "INCOME") {
+        await db.creditCard.update({ where: { id: tx.creditCardId }, data: { balance: { increment: tx.amount } } });
+      }
+    }
+
     await db.transaction.delete({ where: { id: params.id } });
   });
 
